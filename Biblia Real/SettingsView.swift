@@ -5,8 +5,9 @@ struct SettingsView: View {
     @Binding var isPresented: Bool
 
     @AppStorage("fontSize")         private var fontSize: Double = 18
+    @AppStorage("lineSpacing")      private var lineSpacing: Double = 12
     @AppStorage("theme")            private var theme: ReadingTheme = .white
-    @AppStorage("readingFont")      private var readingFont: ReadingFont = .sans
+    @AppStorage("readingFont")      private var readingFont: ReadingFont = .inter
     @AppStorage("fontSizeAlertShown") private var fontSizeAlertShown = false
     @State private var showFontSizeAlert = false
 
@@ -30,6 +31,23 @@ struct SettingsView: View {
                 } message: {
                     Text("Cada tamaño de texto guarda sus propias anotaciones. Al cambiar el tamaño verás un lienzo limpio, pero tus notas del tamaño anterior se conservan intactas.")
                 }
+
+                divider()
+
+                // MARK: Line spacing
+                label("Espacio entre líneas")
+                HStack(spacing: 10) {
+                    Image(systemName: "text.alignleft")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 16)
+                    Slider(value: $lineSpacing, in: 6...28, step: 2)
+                    Image(systemName: "text.alignleft")
+                        .font(.system(size: 20))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 24)
+                }
+                .padding(.bottom, 24)
 
                 divider()
 
@@ -69,10 +87,10 @@ struct SettingsView: View {
                         Button { readingFont = f } label: {
                             HStack(spacing: 12) {
                                 Text("Aa")
-                                    .font(.system(size: 18, design: f.design))
+                                    .font(f.font(size: 18))
                                     .frame(width: 32, alignment: .leading)
                                 Text(f.displayName)
-                                    .font(.system(size: 15, design: f.design))
+                                    .font(f.font(size: 15))
                                     .foregroundStyle(.primary)
                                 Spacer()
                                 if readingFont == f {

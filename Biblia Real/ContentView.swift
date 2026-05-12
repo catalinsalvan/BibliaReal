@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @AppStorage("translation") private var selectedTranslation: Translation = .rv1960
     @AppStorage("fontSize") private var fontSize: Double = 18
+    @AppStorage("theme") private var theme: ReadingTheme = .white
     @AppStorage("bookIdx") private var bookIdx: Int = 0
     @AppStorage("chapterIdx") private var chapterIdx: Int = 0
     @State private var books: [Book] = []
@@ -21,7 +22,6 @@ struct ContentView: View {
         return bookmarkStore.isBookmarked(translation: selectedTranslation, bookId: book.id, chapter: chapter.number)
     }
 
-    private var hasPrev: Bool { chapterIdx > 0 || bookIdx > 0 }
     private var hasNext: Bool {
         guard let book = currentBook else { return false }
         return chapterIdx < book.chapterCount - 1 || bookIdx < books.count - 1
@@ -30,7 +30,6 @@ struct ContentView: View {
     var body: some View {
         VStack(spacing: 0) {
             topBar
-            Divider()
 
             if let book = currentBook, let chapter = currentChapter {
                 ReadingView(
@@ -38,7 +37,7 @@ struct ContentView: View {
                     chapter: chapter,
                     selectedTranslation: selectedTranslation
                 )
-                .id("\(book.id)_\(chapter.number)_\(selectedTranslation.rawValue)_\(Int(fontSize))")
+                .id("\(book.id)_\(chapter.number)_\(selectedTranslation.rawValue)_\(Int(fontSize))_\(Int(lineSpacing))")
                 .gesture(
                     DragGesture(minimumDistance: 50)
                         .onEnded { value in
@@ -53,7 +52,8 @@ struct ContentView: View {
                 ContentUnavailableView("Sin contenido", systemImage: "book.closed")
             }
         }
-        .ignoresSafeArea(edges: .horizontal)
+        .ignoresSafeArea(edges: [.horizontal, .bottom])
+        .background(theme.background, ignoresSafeAreaEdges: .top)
         .onAppear { loadBooks() }
         .onChange(of: selectedTranslation) { _, _ in
             if pendingNavigation == nil {
@@ -69,115 +69,105 @@ struct ContentView: View {
     // MARK: - Top bar
 
     private var topBar: some View {
-        HStack(spacing: 0) {
-            Menu {
-                ForEach(books.indices, id: \.self) { i in
-                    Button(books[i].name) {
-                        bookIdx = i
-                        chapterIdx = 0
+        HStack {
+            // ── Navigation pills ──────────────────────────────────
+            HStack(spacing: 10) {
+                Menu {
+                    ForEach(books.indices, id: \.self) { i in
+                        Button(books[i].name) {
+                            bookIdx = i
+                            chapterIdx = 0
+                        }
                     }
+                } label: {
+                    HStack(spacing: 4) {
+                        Text(currentBook?.name ?? "—")
+                            .fontWeight(.semibold)
+                        Image(systemName: "chevron.down")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 14)
                 }
-            } label: {
-                HStack(spacing: 5) {
-                    Text(currentBook?.name ?? "—")
-                        .fontWeight(.semibold)
-                    Image(systemName: "chevron.down")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                .glassEffect(in: Capsule())
+
+                Button {
+                    showChapterPicker = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Text(currentChapter.map { "Cap. \($0.number)" } ?? "—")
+                            .fontWeight(.semibold)
+                        Image(systemName: "chevron.down")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 14)
                 }
-                .padding(.vertical, 8)
-                .padding(.horizontal, 12)
-                .background(Color(.secondarySystemBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-            }
-
-            Text("·")
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 8)
-
-            Button {
-                showChapterPicker = true
-            } label: {
-                HStack(spacing: 5) {
-                    Text(currentChapter.map { "Capítulo \($0.number)" } ?? "—")
-                        .fontWeight(.semibold)
-                    Image(systemName: "chevron.down")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                .glassEffect(in: Capsule())
+                .popover(isPresented: $showChapterPicker, arrowEdge: .top) {
+                    chapterGrid
                 }
-                .padding(.vertical, 8)
-                .padding(.horizontal, 12)
-                .background(Color(.secondarySystemBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-            }
-            .popover(isPresented: $showChapterPicker, arrowEdge: .top) {
-                chapterGrid
-            }
-
-            if let book = currentBook, let chapter = currentChapter {
-                Text("·")
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 8)
-
-                Text("\(chapter.number) / \(book.chapterCount)")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
             }
 
             Spacer()
 
-            Button {
-                showBookmarks = true
-            } label: {
-                Image(systemName: currentBookIsBookmarked ? "bookmark.fill" : "bookmark")
-                    .font(.system(size: 16))
-                    .foregroundStyle(currentBookIsBookmarked ? Color.accentColor : .secondary)
-                    .padding(8)
-            }
-            .sheet(isPresented: $showBookmarks) {
-                if let book = currentBook, let chapter = currentChapter {
-                    BookmarksView(
-                        currentTranslation: selectedTranslation,
-                        currentBookId: book.id,
-                        currentBookName: book.name,
-                        currentChapter: chapter.number
-                    ) { bookmark in
-                        navigateTo(bookmark)
+            // ── Actions pill ──────────────────────────────────────
+            HStack(spacing: 0) {
+                Button {
+                    showBookmarks = true
+                } label: {
+                    Image(systemName: currentBookIsBookmarked ? "bookmark.fill" : "bookmark")
+                        .font(.system(size: 16))
+                        .foregroundStyle(currentBookIsBookmarked ? Color.accentColor : .secondary)
+                        .padding(10)
+                }
+                .sheet(isPresented: $showBookmarks) {
+                    if let book = currentBook, let chapter = currentChapter {
+                        BookmarksView(
+                            currentTranslation: selectedTranslation,
+                            currentBookId: book.id,
+                            currentBookName: book.name,
+                            currentChapter: chapter.number
+                        ) { bookmark in
+                            navigateTo(bookmark)
+                        }
+                        .presentationDetents([.medium, .large])
+                    }
+                }
+
+                Button {
+                    showSearch = true
+                } label: {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 16))
+                        .foregroundStyle(.secondary)
+                        .padding(10)
+                }
+                .sheet(isPresented: $showSearch) {
+                    SearchView(translation: selectedTranslation, books: books) { result in
+                        if let idx = books.firstIndex(where: { $0.id == result.bookId }) {
+                            bookIdx = idx
+                            chapterIdx = result.chapter - 1
+                        }
                     }
                     .presentationDetents([.medium, .large])
                 }
-            }
 
-            Button {
-                showSearch = true
-            } label: {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 16))
-                    .foregroundStyle(.secondary)
-                    .padding(8)
-            }
-            .sheet(isPresented: $showSearch) {
-                SearchView(translation: selectedTranslation, books: books) { result in
-                    if let idx = books.firstIndex(where: { $0.id == result.bookId }) {
-                        bookIdx = idx
-                        chapterIdx = result.chapter - 1
-                    }
+                Button {
+                    showSettings = true
+                } label: {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 16))
+                        .foregroundStyle(.secondary)
+                        .padding(10)
                 }
-                .presentationDetents([.medium, .large])
+                .popover(isPresented: $showSettings, arrowEdge: .top) {
+                    SettingsView(selectedTranslation: $selectedTranslation, isPresented: $showSettings)
+                }
             }
-
-            Button {
-                showSettings = true
-            } label: {
-                Image(systemName: "gearshape")
-                    .font(.system(size: 16))
-                    .foregroundStyle(.secondary)
-                    .padding(8)
-            }
-            .popover(isPresented: $showSettings, arrowEdge: .top) {
-                SettingsView(selectedTranslation: $selectedTranslation, isPresented: $showSettings)
-            }
+            .glassEffect(in: Capsule())
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 10)

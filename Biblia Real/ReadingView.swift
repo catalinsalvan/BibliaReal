@@ -14,8 +14,9 @@ struct ReadingView: View {
     let selectedTranslation: Translation
 
     @AppStorage("fontSize")    private var fontSize: Double = 18
+    @AppStorage("lineSpacing") private var lineSpacing: Double = 12
     @AppStorage("theme")       private var theme: ReadingTheme = .white
-    @AppStorage("readingFont") private var readingFont: ReadingFont = .sans
+    @AppStorage("readingFont") private var readingFont: ReadingFont = .inter
     @State private var toolPicker = PKToolPicker()
     @State private var overlayDrawing = PKDrawing()
     @State private var marginDrawing = PKDrawing()
@@ -24,10 +25,11 @@ struct ReadingView: View {
     private let marginRatio: CGFloat = 0.40
 
     private var annotationKey: String {
-        "\(selectedTranslation.rawValue)_\(book.id)_\(chapter.number)_\(Int(fontSize))"
+        "\(selectedTranslation.rawValue)_\(book.id)_\(chapter.number)_\(Int(fontSize))_\(Int(lineSpacing))"
     }
 
     var body: some View {
+
         GeometryReader { geo in
             let isPortrait = geo.size.height > geo.size.width
             let marginWidth = isPortrait ? 0 : geo.size.width * marginRatio - 1
@@ -35,24 +37,15 @@ struct ReadingView: View {
 
             HStack(spacing: 0) {
 
-                // ── Text column ──────────────────────────────────────
+                // ── Text column ─────────────────────────────────────
                 ScrollView(.vertical) {
                     ZStack(alignment: .topLeading) {
-                        VStack(alignment: .leading, spacing: 12) {
+                        VStack(alignment: .leading, spacing: lineSpacing * 1.2) {
                             ForEach(chapter.verses) { verse in
-                                HStack(alignment: .top, spacing: 10) {
-                                    Text("\(verse.number)")
-                                        .font(.system(size: 13, design: readingFont.design))
-                                        .foregroundStyle(theme.secondaryText)
-                                        .frame(width: 28, alignment: .trailing)
-                                        .padding(.top, 3)
-                                    Text(verse.text)
-                                        .font(.system(size: fontSize, design: readingFont.design))
-                                        .foregroundStyle(theme.text)
-                                        .lineSpacing(6)
-                                }
+                                verseCell(verse)
                             }
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 24)
                         .padding(.vertical, 28)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -87,6 +80,7 @@ struct ReadingView: View {
                     .frame(width: marginWidth, height: geo.size.height)
                 }
             }
+            .background(theme.background)
         }
         .ignoresSafeArea(edges: .bottom)
         .onPreferenceChange(ContentHeightKey.self) { h in
@@ -95,6 +89,16 @@ struct ReadingView: View {
         .onAppear(perform: loadAnnotations)
         .onChange(of: overlayDrawing) { _, _ in saveAnnotations() }
         .onChange(of: marginDrawing)  { _, _ in saveAnnotations() }
+    }
+
+    private func verseCell(_ verse: Verse) -> some View {
+        (Text("\(verse.number) ")
+            .font(readingFont.font(size: fontSize * 0.62))
+            .foregroundColor(theme.secondaryText)
+        + Text(verse.text)
+            .font(readingFont.font(size: fontSize))
+            .foregroundColor(theme.text))
+        .lineSpacing(lineSpacing)
     }
 
     private func loadAnnotations() {

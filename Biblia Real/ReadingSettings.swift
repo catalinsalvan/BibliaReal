@@ -59,12 +59,13 @@ enum ReadingTheme: String, CaseIterable, Identifiable {
 }
 
 enum ReadingFont: String, CaseIterable, Identifiable {
-    case sans, serif, rounded, mono
+    case inter, sans, serif, rounded, mono
 
     var id: String { rawValue }
 
     var design: Font.Design {
         switch self {
+        case .inter:   return .default
         case .sans:    return .default
         case .serif:   return .serif
         case .rounded: return .rounded
@@ -72,8 +73,16 @@ enum ReadingFont: String, CaseIterable, Identifiable {
         }
     }
 
+    func font(size: CGFloat) -> Font {
+        if self == .inter {
+            return .custom("Inter-Regular", size: size)
+        }
+        return .system(size: size, design: design)
+    }
+
     var displayName: String {
         switch self {
+        case .inter:   return "Inter"
         case .sans:    return "Sans-Serif"
         case .serif:   return "Serif"
         case .rounded: return "Redondeada"
