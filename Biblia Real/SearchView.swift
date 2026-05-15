@@ -26,11 +26,11 @@ struct SearchView: View {
         NavigationStack {
             List {
                 if query.isEmpty {
-                    ContentUnavailableView("Buscar versículos", systemImage: "magnifyingglass",
-                        description: Text("Escribe una referencia (Juan 3:16) o una palabra"))
+                    ContentUnavailableView(translation.searchEmptyTitle, systemImage: "magnifyingglass",
+                        description: Text(translation.searchEmptyDescription))
                 } else {
                     if let ref = referenceMatch {
-                        Section("Referencia") {
+                        Section(translation.searchReferenceSection) {
                             Button {
                                 onSelect(SearchResult(
                                     bookId: ref.book.id,
@@ -49,12 +49,13 @@ struct SearchView: View {
                                         Text(ref.label)
                                             .fontWeight(.semibold)
                                             .foregroundStyle(.primary)
-                                        Text("Ir al capítulo")
+                                        Text(translation.searchGoToChapter)
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
                                     }
                                 }
                                 .padding(.vertical, 2)
+                                .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
                         }
@@ -67,8 +68,8 @@ struct SearchView: View {
                         ContentUnavailableView.search(text: query)
                     } else if !results.isEmpty {
                         Section(results.count == 200
-                                ? "Primeros 200 resultados"
-                                : "\(results.count) resultado\(results.count == 1 ? "" : "s")") {
+                                ? translation.searchFirst200
+                                : translation.searchResultCount(results.count)) {
                             ForEach(results) { result in
                                 Button {
                                     onSelect(result)
@@ -85,6 +86,7 @@ struct SearchView: View {
                                             .lineLimit(3)
                                     }
                                     .padding(.vertical, 2)
+                                    .contentShape(Rectangle())
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -93,16 +95,16 @@ struct SearchView: View {
                 }
             }
             .listStyle(.insetGrouped)
-            .navigationTitle("Buscar")
+            .navigationTitle(translation.searchNavTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cerrar") { dismiss() }
+                    Button(translation.closeLabel) { dismiss() }
                 }
             }
             .searchable(text: $query,
                         placement: .navigationBarDrawer(displayMode: .always),
-                        prompt: "Referencia o palabra...")
+                        prompt: translation.searchPrompt)
             .onChange(of: query) { _, newValue in
                 referenceMatch = parseReference(newValue)
                 searchTask?.cancel()

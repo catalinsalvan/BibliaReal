@@ -8,7 +8,7 @@ enum ReadingTheme: String, CaseIterable, Identifiable {
     var background: Color {
         switch self {
         case .white:      return .white
-        case .sepia:      return Color(red: 0.97,  green: 0.93,  blue: 0.82)
+        case .sepia:      return Color(red: 0.961, green: 0.902, blue: 0.784) // #F5E6C8
         case .dark:       return Color(red: 0.13,  green: 0.13,  blue: 0.15)
         case .black:      return .black
         case .claudeWeb:  return Color(red: 0.980, green: 0.973, blue: 0.961)
@@ -19,7 +19,7 @@ enum ReadingTheme: String, CaseIterable, Identifiable {
     var text: Color {
         switch self {
         case .white:      return Color(white: 0.10)
-        case .sepia:      return Color(red: 0.22,  green: 0.15,  blue: 0.05)
+        case .sepia:      return Color(red: 0.231, green: 0.165, blue: 0.102) // #3B2A1A
         case .dark, .black: return Color(white: 0.88)
         case .claudeWeb:  return Color(red: 0.13,  green: 0.10,  blue: 0.08)
         case .claudeCode: return Color(red: 0.918, green: 0.902, blue: 0.878)
@@ -29,7 +29,7 @@ enum ReadingTheme: String, CaseIterable, Identifiable {
     var secondaryText: Color {
         switch self {
         case .white:      return Color(white: 0.45)
-        case .sepia:      return Color(red: 0.50,  green: 0.38,  blue: 0.18)
+        case .sepia:      return Color(red: 0.549, green: 0.380, blue: 0.200)
         case .dark, .black: return Color(white: 0.48)
         case .claudeWeb:  return Color(red: 0.48,  green: 0.38,  blue: 0.28)
         case .claudeCode: return Color(red: 0.824, green: 0.467, blue: 0.325)
@@ -39,19 +39,20 @@ enum ReadingTheme: String, CaseIterable, Identifiable {
     var separator: Color {
         switch self {
         case .white:      return Color(white: 0.82)
-        case .sepia:      return Color(red: 0.72,  green: 0.65,  blue: 0.48)
+        case .sepia:      return Color(red: 0.824, green: 0.745, blue: 0.608)
         case .dark, .black: return Color(white: 0.22)
         case .claudeWeb:  return Color(red: 0.85,  green: 0.82,  blue: 0.77)
         case .claudeCode: return Color(red: 0.824, green: 0.467, blue: 0.325).opacity(0.4)
         }
     }
 
-    var displayName: String {
+    func displayName(for translation: Translation) -> String {
+        let ro = translation == .cornilescu
         switch self {
-        case .white:      return "Blanco"
+        case .white:      return ro ? "Alb"       : "Blanco"
         case .sepia:      return "Sepia"
-        case .dark:       return "Oscuro"
-        case .black:      return "Negro"
+        case .dark:       return ro ? "Întunecat" : "Oscuro"
+        case .black:      return "OLED"
         case .claudeWeb:  return "Claude"
         case .claudeCode: return "Code"
         }
@@ -80,13 +81,14 @@ enum ReadingFont: String, CaseIterable, Identifiable {
         return .system(size: size, design: design)
     }
 
-    var displayName: String {
+    func displayName(for translation: Translation) -> String {
+        let ro = translation == .cornilescu
         switch self {
         case .inter:   return "Inter"
         case .sans:    return "Sans-Serif"
         case .serif:   return "Serif"
-        case .rounded: return "Redondeada"
-        case .mono:    return "Monoespaciada"
+        case .rounded: return ro ? "Rotunjit"    : "Redondeada"
+        case .mono:    return ro ? "Monospațiat" : "Monoespaciada"
         }
     }
 }

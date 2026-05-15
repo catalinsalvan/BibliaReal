@@ -1,19 +1,51 @@
 import SwiftUI
 
+private struct ChapterSlide: ViewModifier {
+    let offsetX: CGFloat
+    let opacity: Double
+
+    func body(content: Content) -> some View {
+        content
+            .offset(x: offsetX)
+            .opacity(opacity)
+    }
+}
+
 struct ContentView: View {
+    var initialVerse: Int? = nil
+
     @AppStorage("translation") private var selectedTranslation: Translation = .rv1960
-    @AppStorage("fontSize") private var fontSize: Double = 18
+    @AppStorage("fontSize")      private var fontSize: Double = 18
+    @AppStorage("lineSpacing")   private var lineSpacing: Double = 12
     @AppStorage("theme") private var theme: ReadingTheme = .white
     @AppStorage("bookIdx") private var bookIdx: Int = 0
     @AppStorage("chapterIdx") private var chapterIdx: Int = 0
     @State private var books: [Book] = []
     @State private var currentChapter: Chapter?
     @State private var showSettings = false
+    @State private var showBookPicker = false
     @State private var showChapterPicker = false
     @State private var showSearch = false
     @State private var showBookmarks = false
     @State private var pendingNavigation: (bookId: Int, chapter: Int)? = nil
+    @State private var navDirection = 0
+    @State private var highlightedVerse: Int? = nil
     @ObservedObject private var bookmarkStore = BookmarkStore.shared
+    @Environment(\.dismiss) private var dismiss
+
+    private var chapterTransition: AnyTransition {
+        let sign: CGFloat = navDirection >= 0 ? 1 : -1
+        return .asymmetric(
+            insertion: .modifier(
+                active:   ChapterSlide(offsetX:  320 * sign, opacity: 0),
+                identity: ChapterSlide(offsetX:  0,          opacity: 1)
+            ),
+            removal: .modifier(
+                active:   ChapterSlide(offsetX: -110 * sign, opacity: 0),
+                identity: ChapterSlide(offsetX:  0,          opacity: 1)
+            )
+        )
+    }
 
     private var currentBook: Book? { books.isEmpty ? nil : books[bookIdx] }
 
@@ -31,30 +63,30 @@ struct ContentView: View {
         VStack(spacing: 0) {
             topBar
 
-            if let book = currentBook, let chapter = currentChapter {
-                ReadingView(
-                    book: book,
-                    chapter: chapter,
-                    selectedTranslation: selectedTranslation
-                )
-                .id("\(book.id)_\(chapter.number)_\(selectedTranslation.rawValue)_\(Int(fontSize))_\(Int(lineSpacing))")
-                .gesture(
-                    DragGesture(minimumDistance: 50)
-                        .onEnded { value in
-                            let horizontal = value.translation.width
-                            let vertical = value.translation.height
-                            guard abs(horizontal) > abs(vertical) else { return }
-                            if horizontal < 0 { goNext() }
-                            else { goPrev() }
-                        }
-                )
-            } else {
-                ContentUnavailableView("Sin contenido", systemImage: "book.closed")
+            ZStack {
+                if let book = currentBook, let chapter = currentChapter {
+                    ReadingView(
+                        book: book,
+                        chapter: chapter,
+                        selectedTranslation: selectedTranslation,
+                        onSwipeLeft: { goNext() },
+                        onSwipeRight: { goPrev() },
+                        highlightVerse: highlightedVerse
+                    )
+                    .id("\(book.id)_\(chapter.number)_\(selectedTranslation.rawValue)_\(Int(fontSize))_\(Int(lineSpacing))")
+                    .transition(chapterTransition)
+                } else {
+                    ContentUnavailableView(selectedTranslation.noContentLabel, systemImage: "book.closed")
+                }
             }
+            .clipped()
         }
         .ignoresSafeArea(edges: [.horizontal, .bottom])
         .background(theme.background, ignoresSafeAreaEdges: .top)
-        .onAppear { loadBooks() }
+        .onAppear {
+            loadBooks()
+            if let v = initialVerse { highlightedVerse = v }
+        }
         .onChange(of: selectedTranslation) { _, _ in
             if pendingNavigation == nil {
                 bookIdx = 0
@@ -72,13 +104,17 @@ struct ContentView: View {
         HStack {
             // ── Navigation pills ──────────────────────────────────
             HStack(spacing: 10) {
-                Menu {
-                    ForEach(books.indices, id: \.self) { i in
-                        Button(books[i].name) {
-                            bookIdx = i
-                            chapterIdx = 0
-                        }
-                    }
+                Button { dismiss() } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                }
+                .glassEffect(in: Capsule())
+
+                Button {
+                    showBookPicker = true
                 } label: {
                     HStack(spacing: 4) {
                         Text(currentBook?.name ?? "—")
@@ -91,6 +127,9 @@ struct ContentView: View {
                     .padding(.horizontal, 14)
                 }
                 .glassEffect(in: Capsule())
+                .popover(isPresented: $showBookPicker, arrowEdge: .top) {
+                    bookPicker
+                }
 
                 Button {
                     showChapterPicker = true
@@ -150,6 +189,7 @@ struct ContentView: View {
                         if let idx = books.firstIndex(where: { $0.id == result.bookId }) {
                             bookIdx = idx
                             chapterIdx = result.chapter - 1
+                            highlightedVerse = result.verse
                         }
                     }
                     .presentationDetents([.medium, .large])
@@ -204,6 +244,43 @@ struct ContentView: View {
         .presentationCompactAdaptation(.popover)
     }
 
+    // MARK: - Book picker
+
+    private var bookPicker: some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                ForEach(books.indices, id: \.self) { i in
+                    Button {
+                        bookIdx = i
+                        chapterIdx = 0
+                        showBookPicker = false
+                    } label: {
+                        HStack {
+                            Text(books[i].name)
+                                .font(.system(size: 15, weight: bookIdx == i ? .semibold : .regular))
+                                .foregroundStyle(bookIdx == i ? Color.accentColor : Color.primary)
+                            Spacer()
+                            if bookIdx == i {
+                                Image(systemName: "checkmark")
+                                    .font(.caption.bold())
+                                    .foregroundStyle(Color.accentColor)
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    if i < books.count - 1 { Divider().padding(.leading, 16) }
+                }
+            }
+            .padding(.vertical, 8)
+        }
+        .frame(width: 260)
+        .frame(maxHeight: 400)
+        .presentationCompactAdaptation(.popover)
+    }
+
     // MARK: - Data loading
 
     private func loadBooks() {
@@ -243,20 +320,42 @@ struct ContentView: View {
 
     private func goNext() {
         guard let book = currentBook else { return }
+        var newBookIdx = bookIdx
+        var newChapterIdx = chapterIdx
         if chapterIdx < book.chapterCount - 1 {
-            chapterIdx += 1
+            newChapterIdx += 1
         } else if bookIdx < books.count - 1 {
-            bookIdx += 1
-            chapterIdx = 0
-        }
+            newBookIdx += 1
+            newChapterIdx = 0
+        } else { return }
+        animateToChapter(bookIdx: newBookIdx, chapterIdx: newChapterIdx, direction: 1)
     }
 
     private func goPrev() {
+        var newBookIdx = bookIdx
+        var newChapterIdx = chapterIdx
         if chapterIdx > 0 {
-            chapterIdx -= 1
+            newChapterIdx -= 1
         } else if bookIdx > 0 {
-            bookIdx -= 1
-            chapterIdx = books[bookIdx].chapterCount - 1
+            newBookIdx -= 1
+            newChapterIdx = books[newBookIdx].chapterCount - 1
+        } else { return }
+        animateToChapter(bookIdx: newBookIdx, chapterIdx: newChapterIdx, direction: -1)
+    }
+
+    private func animateToChapter(bookIdx newBookIdx: Int, chapterIdx newChapterIdx: Int, direction: Int) {
+        let newBook = books[newBookIdx]
+        let newChapter = BibleDatabase.shared.chapter(
+            translation: selectedTranslation,
+            bookId: newBook.id,
+            number: newChapterIdx + 1
+        )
+        navDirection = direction
+        highlightedVerse = nil
+        withAnimation(.spring(response: 0.44, dampingFraction: 0.60)) {
+            bookIdx = newBookIdx
+            chapterIdx = newChapterIdx
+            currentChapter = newChapter
         }
     }
 }

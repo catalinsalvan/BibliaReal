@@ -56,6 +56,31 @@ final class BibleDatabase {
         return verses.isEmpty ? nil : Chapter(number: number, verses: verses)
     }
 
+    func verseOfDay(translation: Translation, seed: Int) -> (bookId: Int, chapter: Int, verse: Int, text: String)? {
+        guard let db else { return nil }
+        var countStmt: OpaquePointer?
+        sqlite3_prepare_v2(db, "SELECT COUNT(*) FROM verses WHERE translation = ?", -1, &countStmt, nil)
+        sqlite3_bind_text(countStmt, 1, translation.rawValue, -1, SQLITE_TRANSIENT)
+        sqlite3_step(countStmt)
+        let total = Int(sqlite3_column_int(countStmt, 0))
+        sqlite3_finalize(countStmt)
+        guard total > 0 else { return nil }
+        let offset = Int32(abs(seed) % total)
+        let sql = "SELECT book_id, chapter, verse, text FROM verses WHERE translation = ? ORDER BY book_id, chapter, verse LIMIT 1 OFFSET ?"
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { return nil }
+        defer { sqlite3_finalize(stmt) }
+        sqlite3_bind_text(stmt, 1, translation.rawValue, -1, SQLITE_TRANSIENT)
+        sqlite3_bind_int(stmt, 2, offset)
+        guard sqlite3_step(stmt) == SQLITE_ROW else { return nil }
+        return (
+            bookId:  Int(sqlite3_column_int(stmt, 0)),
+            chapter: Int(sqlite3_column_int(stmt, 1)),
+            verse:   Int(sqlite3_column_int(stmt, 2)),
+            text:    String(cString: sqlite3_column_text(stmt, 3))
+        )
+    }
+
     func search(translation: Translation, query: String, limit: Int = 200) -> [SearchResult] {
         guard let db, !query.trimmingCharacters(in: .whitespaces).isEmpty else { return [] }
         let sql = """

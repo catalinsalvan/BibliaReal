@@ -16,7 +16,7 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 0) {
 
                 // MARK: Font size
-                label("Tamaño de texto")
+                label(selectedTranslation.fontSizeLabel)
                 HStack(spacing: 10) {
                     Text("A").font(.system(size: 13)).foregroundStyle(.secondary).frame(width: 16)
                     Slider(value: $fontSize, in: 14...26, step: 2)
@@ -26,16 +26,16 @@ struct SettingsView: View {
                 .onChange(of: fontSize) { _, _ in
                     if !fontSizeAlertShown { showFontSizeAlert = true; fontSizeAlertShown = true }
                 }
-                .alert("Anotaciones por tamaño", isPresented: $showFontSizeAlert) {
-                    Button("Entendido") { }
+                .alert(selectedTranslation.fontSizeAlertTitle, isPresented: $showFontSizeAlert) {
+                    Button(selectedTranslation.fontSizeAlertButton) { }
                 } message: {
-                    Text("Cada tamaño de texto guarda sus propias anotaciones. Al cambiar el tamaño verás un lienzo limpio, pero tus notas del tamaño anterior se conservan intactas.")
+                    Text(selectedTranslation.fontSizeAlertMessage)
                 }
 
                 divider()
 
                 // MARK: Line spacing
-                label("Espacio entre líneas")
+                label(selectedTranslation.lineSpacingLabel)
                 HStack(spacing: 10) {
                     Image(systemName: "text.alignleft")
                         .font(.system(size: 13))
@@ -52,7 +52,7 @@ struct SettingsView: View {
                 divider()
 
                 // MARK: Theme
-                label("Tema")
+                label(selectedTranslation.themeLabel)
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 16) {
                     ForEach(ReadingTheme.allCases) { t in
                         Button { theme = t } label: {
@@ -68,7 +68,7 @@ struct SettingsView: View {
                                             .frame(width: 43, height: 43)
                                     }
                                 }
-                                Text(t.displayName)
+                                Text(t.displayName(for: selectedTranslation))
                                     .font(.caption2)
                                     .foregroundStyle(theme == t ? Color.accentColor : .secondary)
                             }
@@ -81,7 +81,7 @@ struct SettingsView: View {
                 divider()
 
                 // MARK: Font
-                label("Fuente")
+                label(selectedTranslation.fontLabel)
                 VStack(spacing: 0) {
                     ForEach(ReadingFont.allCases) { f in
                         Button { readingFont = f } label: {
@@ -89,7 +89,7 @@ struct SettingsView: View {
                                 Text("Aa")
                                     .font(f.font(size: 18))
                                     .frame(width: 32, alignment: .leading)
-                                Text(f.displayName)
+                                Text(f.displayName(for: selectedTranslation))
                                     .font(f.font(size: 15))
                                     .foregroundStyle(.primary)
                                 Spacer()
@@ -100,6 +100,7 @@ struct SettingsView: View {
                                 }
                             }
                             .padding(.vertical, 10)
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         if f != ReadingFont.allCases.last { Divider() }
@@ -110,7 +111,7 @@ struct SettingsView: View {
                 divider()
 
                 // MARK: Translation
-                label("Traducción")
+                label(selectedTranslation.translationLabel)
                 VStack(spacing: 0) {
                     row(.rv1960)
                     Divider()
@@ -154,6 +155,7 @@ struct SettingsView: View {
                 }
             }
             .padding(.vertical, 10)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }

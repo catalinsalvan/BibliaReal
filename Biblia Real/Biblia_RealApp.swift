@@ -4,7 +4,7 @@ import SwiftUI
 struct Biblia_RealApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            HomeView()
         }
     }
 }

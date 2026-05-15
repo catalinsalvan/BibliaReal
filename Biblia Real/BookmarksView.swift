@@ -30,19 +30,20 @@ struct BookmarksView: View {
                             Image(systemName: isCurrentBookmarked ? "bookmark.fill" : "bookmark")
                                 .foregroundStyle(Color.accentColor)
                                 .frame(width: 20)
-                            Text(isCurrentBookmarked ? "Quitar marcador" : "Añadir marcador")
+                            Text(isCurrentBookmarked ? currentTranslation.removeBookmarkLabel : currentTranslation.addBookmarkLabel)
                                 .foregroundStyle(.primary)
                             Spacer()
                             Text("\(currentBookName) \(currentChapter)")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 }
 
                 if !store.bookmarks.isEmpty {
-                    Section("Guardados") {
+                    Section(currentTranslation.bookmarksSavedSection) {
                         ForEach(store.bookmarks) { bookmark in
                             Button {
                                 onSelect(bookmark)
@@ -67,21 +68,22 @@ struct BookmarksView: View {
                                         .font(.caption)
                                         .foregroundStyle(.tertiary)
                                 }
+                                .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
                         }
                         .onDelete { store.remove(at: $0) }
                     }
                 } else {
-                    ContentUnavailableView("Sin marcadores", systemImage: "bookmark",
-                        description: Text("Toca \"Añadir marcador\" para guardar este capítulo"))
+                    ContentUnavailableView(currentTranslation.bookmarksEmptyTitle, systemImage: "bookmark",
+                        description: Text(currentTranslation.bookmarksEmptyDescription))
                 }
             }
-            .navigationTitle("Marcadores")
+            .navigationTitle(currentTranslation.bookmarksNavTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cerrar") { dismiss() }
+                    Button(currentTranslation.closeLabel) { dismiss() }
                 }
                 if !store.bookmarks.isEmpty {
                     ToolbarItem(placement: .navigationBarTrailing) {
