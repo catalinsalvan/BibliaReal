@@ -6,6 +6,12 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		00E693402FBB27400064352C /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 00E6933F2FBB27400064352C /* WidgetKit.framework */; };
+		00E693422FBB27400064352C /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 00E693412FBB27400064352C /* SwiftUI.framework */; };
+		00E6934D2FBB27420064352C /* Biblia RealWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 00E6933D2FBB27400064352C /* Biblia RealWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		00E692DB2FB1E3150064352C /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -21,17 +27,61 @@
 			remoteGlobalIDString = 00E692CA2FB1E3140064352C;
 			remoteInfo = "Biblia Real";
 		};
+		00E6934B2FBB27420064352C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 00E692C32FB1E3140064352C /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 00E6933C2FBB27400064352C;
+			remoteInfo = "Biblia RealWidgetExtension";
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		00E693522FBB27420064352C /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				00E6934D2FBB27420064352C /* Biblia RealWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		00E692CB2FB1E3140064352C /* Biblia Real.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Biblia Real.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		00E692DA2FB1E3150064352C /* Biblia RealTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Biblia RealTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		00E692E42FB1E3150064352C /* Biblia RealUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Biblia RealUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		00E6933D2FBB27400064352C /* Biblia RealWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "Biblia RealWidgetExtension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		00E6933F2FBB27400064352C /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		00E693412FBB27400064352C /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		00E6934E2FBB27420064352C /* Exceptions for "Biblia RealWidget" folder in "Biblia RealWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 00E6933C2FBB27400064352C /* Biblia RealWidgetExtension */;
+		};
+		00E693582FBB27990064352C /* Exceptions for "Biblia Real" folder in "Biblia RealWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				bible.db,
+			);
+			target = 00E6933C2FBB27400064352C /* Biblia RealWidgetExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		00E692CD2FB1E3140064352C /* Biblia Real */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				00E693582FBB27990064352C /* Exceptions for "Biblia Real" folder in "Biblia RealWidgetExtension" target */,
+			);
 			path = "Biblia Real";
 			sourceTree = "<group>";
 		};
@@ -43,6 +93,14 @@
 		00E692E72FB1E3150064352C /* Biblia RealUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "Biblia RealUITests";
+			sourceTree = "<group>";
+		};
+		00E693432FBB27400064352C /* Biblia RealWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				00E6934E2FBB27420064352C /* Exceptions for "Biblia RealWidget" folder in "Biblia RealWidgetExtension" target */,
+			);
+			path = "Biblia RealWidget";
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -69,6 +127,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		00E6933A2FBB27400064352C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				00E693422FBB27400064352C /* SwiftUI.framework in Frameworks */,
+				00E693402FBB27400064352C /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -78,6 +145,8 @@
 				00E692CD2FB1E3140064352C /* Biblia Real */,
 				00E692DD2FB1E3150064352C /* Biblia RealTests */,
 				00E692E72FB1E3150064352C /* Biblia RealUITests */,
+				00E693432FBB27400064352C /* Biblia RealWidget */,
+				00E6933E2FBB27400064352C /* Frameworks */,
 				00E692CC2FB1E3140064352C /* Products */,
 			);
 			sourceTree = "<group>";
@@ -88,8 +157,18 @@
 				00E692CB2FB1E3140064352C /* Biblia Real.app */,
 				00E692DA2FB1E3150064352C /* Biblia RealTests.xctest */,
 				00E692E42FB1E3150064352C /* Biblia RealUITests.xctest */,
+				00E6933D2FBB27400064352C /* Biblia RealWidgetExtension.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		00E6933E2FBB27400064352C /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				00E6933F2FBB27400064352C /* WidgetKit.framework */,
+				00E693412FBB27400064352C /* SwiftUI.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -102,10 +181,12 @@
 				00E692C72FB1E3140064352C /* Sources */,
 				00E692C82FB1E3140064352C /* Frameworks */,
 				00E692C92FB1E3140064352C /* Resources */,
+				00E693522FBB27420064352C /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				00E6934C2FBB27420064352C /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				00E692CD2FB1E3140064352C /* Biblia Real */,
@@ -163,6 +244,28 @@
 			productReference = 00E692E42FB1E3150064352C /* Biblia RealUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		00E6933C2FBB27400064352C /* Biblia RealWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 00E6934F2FBB27420064352C /* Build configuration list for PBXNativeTarget "Biblia RealWidgetExtension" */;
+			buildPhases = (
+				00E693392FBB27400064352C /* Sources */,
+				00E6933A2FBB27400064352C /* Frameworks */,
+				00E6933B2FBB27400064352C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				00E693432FBB27400064352C /* Biblia RealWidget */,
+			);
+			name = "Biblia RealWidgetExtension";
+			packageProductDependencies = (
+			);
+			productName = "Biblia RealWidgetExtension";
+			productReference = 00E6933D2FBB27400064352C /* Biblia RealWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -184,6 +287,9 @@
 						CreatedOnToolsVersion = 26.4.1;
 						TestTargetID = 00E692CA2FB1E3140064352C;
 					};
+					00E6933C2FBB27400064352C = {
+						CreatedOnToolsVersion = 26.4.1;
+					};
 				};
 			};
 			buildConfigurationList = 00E692C62FB1E3140064352C /* Build configuration list for PBXProject "Biblia Real" */;
@@ -203,6 +309,7 @@
 				00E692CA2FB1E3140064352C /* Biblia Real */,
 				00E692D92FB1E3150064352C /* Biblia RealTests */,
 				00E692E32FB1E3150064352C /* Biblia RealUITests */,
+				00E6933C2FBB27400064352C /* Biblia RealWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -223,6 +330,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		00E692E22FB1E3150064352C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		00E6933B2FBB27400064352C /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -253,6 +367,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		00E693392FBB27400064352C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -265,6 +386,11 @@
 			isa = PBXTargetDependency;
 			target = 00E692CA2FB1E3140064352C /* Biblia Real */;
 			targetProxy = 00E692E52FB1E3150064352C /* PBXContainerItemProxy */;
+		};
+		00E6934C2FBB27420064352C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 00E6933C2FBB27400064352C /* Biblia RealWidgetExtension */;
+			targetProxy = 00E6934B2FBB27420064352C /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -398,6 +524,8 @@
 				DEVELOPMENT_TEAM = 77ZC79M7MW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Biblia Real";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.books";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -420,7 +548,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 2;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
@@ -434,6 +562,8 @@
 				DEVELOPMENT_TEAM = 77ZC79M7MW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Biblia Real";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.books";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -456,7 +586,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 2;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
@@ -544,6 +674,70 @@
 			};
 			name = Release;
 		};
+		00E693502FBB27420064352C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 77ZC79M7MW;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Biblia RealWidget/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Biblia RealWidget";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "CSDevelopment.Biblia-Real.Biblia-RealWidget";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		00E693512FBB27420064352C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 77ZC79M7MW;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Biblia RealWidget/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Biblia RealWidget";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "CSDevelopment.Biblia-Real.Biblia-RealWidget";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -579,6 +773,15 @@
 			buildConfigurations = (
 				00E692F52FB1E3150064352C /* Debug */,
 				00E692F62FB1E3150064352C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		00E6934F2FBB27420064352C /* Build configuration list for PBXNativeTarget "Biblia RealWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				00E693502FBB27420064352C /* Debug */,
+				00E693512FBB27420064352C /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

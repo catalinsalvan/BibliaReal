@@ -94,8 +94,6 @@ struct ReadingView: View {
                             }
                             .frame(minHeight: max(contentHeight, geo.size.height))
 
-                            // Next-chapter arrow — sits below the canvas, always tappable
-                            nextChapterButton
                         }
                     }
                     .background(theme.background)
@@ -141,46 +139,25 @@ struct ReadingView: View {
     // MARK: - Subviews
 
     private var chapterHeader: some View {
-        Text("\(chapter.number)")
-            .font(.system(size: fontSize * 3.2, weight: .bold, design: .serif))
-            .foregroundStyle(theme.text.opacity(0.48))
-            .frame(maxWidth: .infinity, alignment: .center)
-            .padding(.bottom, lineSpacing * 0.5)
-    }
-
-    private var nextChapterButton: some View {
-        Button { onSwipeLeft?() } label: {
-            HStack(spacing: 14) {
-                Rectangle()
-                    .fill(theme.separator)
-                    .frame(height: 0.5)
-                Image(systemName: "chevron.right")
-                    .font(.caption.bold())
-                    .foregroundStyle(theme.secondaryText.opacity(0.4))
-                Rectangle()
-                    .fill(theme.separator)
-                    .frame(height: 0.5)
-            }
-            .padding(.horizontal, 40)
-            .contentShape(Rectangle())
+        HStack(spacing: 12) {
+            Rectangle()
+                .fill(theme.separator)
+                .frame(height: 0.5)
+            Text("\(chapter.number)")
+                .font(.system(size: fontSize * 2, weight: .regular, design: .serif))
+                .foregroundStyle(theme.secondaryText)
+                .fixedSize()
+            Rectangle()
+                .fill(theme.separator)
+                .frame(height: 0.5)
         }
-        .buttonStyle(.plain)
-        .padding(.top, 20)
-        .padding(.bottom, 52)
+        .padding(.bottom, lineSpacing * 0.8)
     }
 
     // MARK: - Verse cell
 
+    @ViewBuilder
     private func verseCell(_ verse: Verse) -> some View {
-        var num = AttributedString("\(verse.number)")
-        num.font            = readingFont.font(size: fontSize * 0.60)
-        num.foregroundColor = theme.secondaryText
-        num.baselineOffset  = fontSize * 0.28
-
-        var body = AttributedString(verse.text)
-        body.font            = readingFont.font(size: fontSize)
-        body.foregroundColor = theme.text
-
         let isHL = verse.number == highlightVerse
         let storedColor = highlightStore.color(
             translation: selectedTranslation,
@@ -188,49 +165,83 @@ struct ReadingView: View {
             chapter: chapter.number,
             verse: verse.number
         )
-        return Text(num + body)
-            .lineSpacing(lineSpacing)
-            .multilineTextAlignment(isPoetryBook ? .center : .leading)
-            .background(
-                ZStack {
-                    if let c = storedColor {
-                        RoundedRectangle(cornerRadius: 3).fill(c.color.opacity(0.35))
-                    }
-                    if isHL {
-                        RoundedRectangle(cornerRadius: 3).fill(Color.yellow.opacity(highlightOpacity * 0.42))
-                    }
-                }
-            )
-            .id("verse_\(verse.number)")
-            .contextMenu {
-                ForEach(HighlightColor.allCases, id: \.self) { hc in
-                    Button {
-                        highlightStore.set(
-                            hc,
-                            translation: selectedTranslation,
-                            bookId: book.id,
-                            chapter: chapter.number,
-                            verse: verse.number
-                        )
-                    } label: {
-                        Label(hc.label(for: selectedTranslation), systemImage: "circle.fill")
-                    }
-                    .tint(hc.color)
-                }
-                if storedColor != nil {
-                    Button(role: .destructive) {
-                        highlightStore.set(
-                            nil,
-                            translation: selectedTranslation,
-                            bookId: book.id,
-                            chapter: chapter.number,
-                            verse: verse.number
-                        )
-                    } label: {
-                        Label(selectedTranslation.highlightRemove, systemImage: "xmark.circle")
-                    }
-                }
+
+        if isPoetryBook {
+            poetryVerseText(verse)
+                .lineSpacing(lineSpacing)
+                .multilineTextAlignment(.center)
+                .background(verseHighlightBG(isHL: isHL, storedColor: storedColor))
+                .id("verse_\(verse.number)")
+                .contextMenu { verseMenuItems(verse: verse, storedColor: storedColor) }
+        } else {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                Text("\(verse.number)")
+                    .font(readingFont.font(size: fontSize * 0.62))
+                    .foregroundStyle(theme.secondaryText)
+                    .frame(width: 30, alignment: .trailing)
+                Text(verse.text)
+                    .font(readingFont.font(size: fontSize))
+                    .foregroundStyle(theme.text)
+                    .lineSpacing(lineSpacing)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(verseHighlightBG(isHL: isHL, storedColor: storedColor))
             }
+            .id("verse_\(verse.number)")
+            .contextMenu { verseMenuItems(verse: verse, storedColor: storedColor) }
+        }
+    }
+
+    private func poetryVerseText(_ verse: Verse) -> Text {
+        var num = AttributedString("\(verse.number)")
+        num.font            = readingFont.font(size: fontSize * 0.60)
+        num.foregroundColor = theme.secondaryText
+        num.baselineOffset  = fontSize * 0.28
+        var body = AttributedString(verse.text)
+        body.font            = readingFont.font(size: fontSize)
+        body.foregroundColor = theme.text
+        return Text(num + body)
+    }
+
+    private func verseHighlightBG(isHL: Bool, storedColor: HighlightColor?) -> some View {
+        ZStack {
+            if let c = storedColor {
+                RoundedRectangle(cornerRadius: 3).fill(c.color.opacity(0.35))
+            }
+            if isHL {
+                RoundedRectangle(cornerRadius: 3).fill(Color.yellow.opacity(highlightOpacity * 0.42))
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func verseMenuItems(verse: Verse, storedColor: HighlightColor?) -> some View {
+        ForEach(HighlightColor.allCases, id: \.self) { hc in
+            Button {
+                highlightStore.set(
+                    hc,
+                    translation: selectedTranslation,
+                    bookId: book.id,
+                    chapter: chapter.number,
+                    verse: verse.number
+                )
+            } label: {
+                Label(hc.label(for: selectedTranslation), systemImage: "circle.fill")
+            }
+            .tint(hc.color)
+        }
+        if storedColor != nil {
+            Button(role: .destructive) {
+                highlightStore.set(
+                    nil,
+                    translation: selectedTranslation,
+                    bookId: book.id,
+                    chapter: chapter.number,
+                    verse: verse.number
+                )
+            } label: {
+                Label(selectedTranslation.highlightRemove, systemImage: "xmark.circle")
+            }
+        }
     }
 
     // MARK: - Highlight

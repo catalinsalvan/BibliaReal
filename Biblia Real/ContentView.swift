@@ -33,8 +33,10 @@ struct ContentView: View {
     @State private var dragOffset: CGFloat = 0
     @State private var hapticTrigger = false
     @State private var swipeThresholdReached = false
+    @State private var topBarVisible = true
     @ObservedObject private var bookmarkStore = BookmarkStore.shared
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.horizontalSizeClass) private var hSizeClass
 
     private var chapterTransition: AnyTransition {
         let sign: CGFloat = navDirection >= 0 ? 1 : -1
@@ -63,60 +65,68 @@ struct ContentView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            topBar
-
-            GeometryReader { geo in
-                let isPortrait = geo.size.height > geo.size.width
-                ZStack {
-                    if let book = currentBook, let chapter = currentChapter {
-                        ReadingView(
-                            book: book,
-                            chapter: chapter,
-                            selectedTranslation: selectedTranslation,
-                            onSwipeLeft: { goNext() },
-                            onSwipeRight: { goPrev() },
-                            highlightVerse: highlightedVerse
-                        )
-                        .id("\(book.id)_\(chapter.number)_\(selectedTranslation.rawValue)_\(Int(fontSize))_\(Int(lineSpacing))")
-                        .transition(chapterTransition)
-                        .offset(x: dragOffset)
-                    } else {
-                        ContentUnavailableView(selectedTranslation.noContentLabel, systemImage: "book.closed")
-                    }
+        GeometryReader { geo in
+            let isPortrait = geo.size.height > geo.size.width
+            ZStack {
+                if let book = currentBook, let chapter = currentChapter {
+                    ReadingView(
+                        book: book,
+                        chapter: chapter,
+                        selectedTranslation: selectedTranslation,
+                        onSwipeLeft: { goNext() },
+                        onSwipeRight: { goPrev() },
+                        highlightVerse: highlightedVerse
+                    )
+                    .id("\(book.id)_\(chapter.number)_\(selectedTranslation.rawValue)_\(Int(fontSize))_\(Int(lineSpacing))")
+                    .transition(chapterTransition)
+                    .offset(x: dragOffset)
+                } else {
+                    ContentUnavailableView(selectedTranslation.noContentLabel, systemImage: "book.closed")
                 }
-                .clipped()
-                .simultaneousGesture(
-                    DragGesture(minimumDistance: 20)
-                        .onChanged { value in
-                            guard isPortrait else { return }
-                            let h = value.translation.width
-                            let v = value.translation.height
-                            guard abs(h) > abs(v) * 0.8 else { return }
-                            if !swipeThresholdReached && abs(h) > 60 {
-                                swipeThresholdReached = true
-                                hapticTrigger.toggle()
-                            }
-                            let canLeft  = h < 0 && hasNext
-                            let canRight = h > 0 && (bookIdx > 0 || chapterIdx > 0)
-                            guard canLeft || canRight else { return }
-                            dragOffset = h * 0.28
+            }
+            .clipped()
+            .simultaneousGesture(TapGesture().onEnded {
+                withAnimation(.easeInOut(duration: 0.22)) {
+                    topBarVisible.toggle()
+                }
+            })
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 20)
+                    .onChanged { value in
+                        guard isPortrait else { return }
+                        let h = value.translation.width
+                        let v = value.translation.height
+                        guard abs(h) > abs(v) * 0.8 else { return }
+                        if !swipeThresholdReached && abs(h) > 60 {
+                            swipeThresholdReached = true
+                            hapticTrigger.toggle()
                         }
-                        .onEnded { value in
-                            guard isPortrait else { return }
-                            swipeThresholdReached = false
-                            let h = value.translation.width
-                            let v = value.translation.height
-                            if abs(h) > abs(v) * 2 && abs(h) > 60 {
-                                if h < 0 { goNext() } else { goPrev() }
-                            } else {
-                                withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
-                                    dragOffset = 0
-                                }
+                        let canLeft  = h < 0 && hasNext
+                        let canRight = h > 0 && (bookIdx > 0 || chapterIdx > 0)
+                        guard canLeft || canRight else { return }
+                        dragOffset = h * 0.28
+                    }
+                    .onEnded { value in
+                        guard isPortrait else { return }
+                        swipeThresholdReached = false
+                        let h = value.translation.width
+                        let v = value.translation.height
+                        if abs(h) > abs(v) * 2 && abs(h) > 60 {
+                            if h < 0 { goNext() } else { goPrev() }
+                        } else {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                                dragOffset = 0
                             }
                         }
-                )
-                .sensoryFeedback(.impact(weight: .light, intensity: 0.6), trigger: hapticTrigger)
+                    }
+            )
+            .sensoryFeedback(.impact(weight: .light, intensity: 0.6), trigger: hapticTrigger)
+        }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if topBarVisible {
+                topBar
+                    .background(theme.background)
+                    .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
         .ignoresSafeArea(edges: [.horizontal, .bottom])
@@ -151,63 +161,100 @@ struct ContentView: View {
                 }
                 .glassEffect(in: Capsule())
 
-                Button {
-                    showBookPicker = true
-                } label: {
-                    HStack(spacing: 4) {
-                        Text(currentBook?.name ?? "—")
-                            .fontWeight(.semibold)
-                        Image(systemName: "chevron.down")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 14)
-                }
-                .glassEffect(in: Capsule())
-                .popover(isPresented: $showBookPicker, arrowEdge: .top) {
-                    bookPicker
-                }
-
-                Button {
-                    showChapterPicker = true
-                } label: {
-                    HStack(spacing: 4) {
-                        Text(currentChapter.map { "Cap. \($0.number)" } ?? "—")
-                            .fontWeight(.semibold)
-                        Image(systemName: "chevron.down")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 14)
-                }
-                .glassEffect(in: Capsule())
-                .popover(isPresented: $showChapterPicker, arrowEdge: .top) {
-                    chapterGrid
-                }
-
-                // ── Chapter arrows ────────────────────────────────
-                HStack(spacing: 0) {
-                    Button { goPrev() } label: {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(bookIdx == 0 && chapterIdx == 0 ? Color.secondary.opacity(0.35) : .secondary)
+                if hSizeClass == .compact {
+                    // ── Merged book + chapter pill (iPhone) ───────────
+                    HStack(spacing: 0) {
+                        Button { showBookPicker = true } label: {
+                            HStack(spacing: 4) {
+                                Text(currentBook?.name ?? "—")
+                                    .fontWeight(.semibold)
+                                    .lineLimit(1)
+                                    .frame(maxWidth: 100)
+                                Image(systemName: "chevron.down")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
                             .padding(.vertical, 8)
-                            .padding(.horizontal, 12)
-                    }
-                    .disabled(bookIdx == 0 && chapterIdx == 0)
+                            .padding(.leading, 14)
+                            .padding(.trailing, 8)
+                        }
+                        .popover(isPresented: $showBookPicker, arrowEdge: .top) { bookPicker }
 
-                    Button { goNext() } label: {
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(hasNext ? .secondary : Color.secondary.opacity(0.35))
+                        Text("·")
+                            .foregroundStyle(.tertiary)
+                            .padding(.horizontal, 2)
+
+                        Button { showChapterPicker = true } label: {
+                            HStack(spacing: 4) {
+                                Text(currentChapter.map { "Cap. \($0.number)" } ?? "—")
+                                    .fontWeight(.semibold)
+                                    .lineLimit(1)
+                                Image(systemName: "chevron.down")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
                             .padding(.vertical, 8)
-                            .padding(.horizontal, 12)
+                            .padding(.leading, 8)
+                            .padding(.trailing, 14)
+                        }
+                        .popover(isPresented: $showChapterPicker, arrowEdge: .top) { chapterGrid }
                     }
-                    .disabled(!hasNext)
+                    .glassEffect(in: Capsule())
+                } else {
+                    // ── Separate pills (iPad) ─────────────────────────
+                    Button { showBookPicker = true } label: {
+                        HStack(spacing: 4) {
+                            Text(currentBook?.name ?? "—")
+                                .fontWeight(.semibold)
+                                .lineLimit(1)
+                                .frame(maxWidth: 110)
+                            Image(systemName: "chevron.down")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 14)
+                    }
+                    .glassEffect(in: Capsule())
+                    .popover(isPresented: $showBookPicker, arrowEdge: .top) { bookPicker }
+
+                    Button { showChapterPicker = true } label: {
+                        HStack(spacing: 4) {
+                            Text(currentChapter.map { "Cap. \($0.number)" } ?? "—")
+                                .fontWeight(.semibold)
+                                .lineLimit(1)
+                            Image(systemName: "chevron.down")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 14)
+                    }
+                    .glassEffect(in: Capsule())
+                    .popover(isPresented: $showChapterPicker, arrowEdge: .top) { chapterGrid }
+
+                    // ── Chapter arrows ────────────────────────────────
+                    HStack(spacing: 0) {
+                        Button { goPrev() } label: {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(bookIdx == 0 && chapterIdx == 0 ? Color.secondary.opacity(0.35) : .secondary)
+                                .padding(.vertical, 8)
+                                .padding(.horizontal, 12)
+                        }
+                        .disabled(bookIdx == 0 && chapterIdx == 0)
+
+                        Button { goNext() } label: {
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(hasNext ? .secondary : Color.secondary.opacity(0.35))
+                                .padding(.vertical, 8)
+                                .padding(.horizontal, 12)
+                        }
+                        .disabled(!hasNext)
+                    }
+                    .glassEffect(in: Capsule())
                 }
-                .glassEffect(in: Capsule())
             }
 
             Spacer()
