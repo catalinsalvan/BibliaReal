@@ -46,6 +46,17 @@ enum ReadingTheme: String, CaseIterable, Identifiable {
         }
     }
 
+    var cardBackground: Color {
+        switch self {
+        case .white:      return Color(white: 0.96)
+        case .sepia:      return Color(red: 0.906, green: 0.851, blue: 0.737)
+        case .dark:       return Color(white: 0.18)
+        case .black:      return Color(white: 0.09)
+        case .claudeWeb:  return Color(red: 0.942, green: 0.929, blue: 0.914)
+        case .claudeCode: return Color(red: 0.158, green: 0.158, blue: 0.180)
+        }
+    }
+
     func displayName(for translation: Translation) -> String {
         let ro = translation == .cornilescu
         switch self {

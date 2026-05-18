@@ -82,13 +82,7 @@ struct ReadingView: View {
                                     }
                                 )
 
-                                if isPortrait {
-                                    SwipeDetectorView(
-                                        onSwipeLeft: onSwipeLeft,
-                                        onSwipeRight: onSwipeRight
-                                    )
-                                    .frame(height: max(contentHeight, geo.size.height))
-                                } else {
+                                if !isPortrait {
                                     PencilCanvasView(
                                         drawing: $overlayDrawing,
                                         toolPicker: toolPicker,

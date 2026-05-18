@@ -23,23 +23,27 @@ struct HomeView: View {
             ZStack {
                 theme.background.ignoresSafeArea()
 
-                ScrollView {
-                    VStack(spacing: 0) {
-                        branding
-                            .padding(.top, 60)
-                            .padding(.bottom, 36)
+                GeometryReader { geo in
+                    ScrollView {
+                        VStack(spacing: 0) {
+                            Spacer(minLength: 40)
 
-                        VStack(spacing: 14) {
-                            verseOfDayCard
-                            continueCard
-                            planCard
-                            randomCard
+                            branding
+                                .padding(.bottom, 36)
+
+                            VStack(spacing: 14) {
+                                verseOfDayCard
+                                continueCard
+                                planCard
+                                randomCard
+                            }
+                            .padding(.horizontal, 32)
+
+                            Spacer(minLength: 40)
                         }
-                        .padding(.horizontal, 32)
-                        .padding(.bottom, 60)
+                        .frame(maxWidth: 520)
+                        .frame(maxWidth: .infinity, minHeight: geo.size.height)
                     }
-                    .frame(maxWidth: 520)
-                    .frame(maxWidth: .infinity)
                 }
             }
             .navigationDestination(for: HomeDestination.self) { dest in
@@ -115,7 +119,15 @@ struct HomeView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .glassEffect(in: RoundedRectangle(cornerRadius: 16))
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(theme.cardBackground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .strokeBorder(theme.separator.opacity(0.5), lineWidth: 0.5)
+                )
+                .shadow(color: theme.text.opacity(0.05), radius: 8, x: 0, y: 2)
+        )
     }
 
     private var continueCard: some View {
@@ -146,7 +158,15 @@ struct HomeView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .glassEffect(in: RoundedRectangle(cornerRadius: 16))
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(theme.cardBackground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .strokeBorder(theme.separator.opacity(0.5), lineWidth: 0.5)
+                )
+                .shadow(color: theme.text.opacity(0.05), radius: 8, x: 0, y: 2)
+        )
     }
 
     private var planCard: some View {
@@ -177,7 +197,15 @@ struct HomeView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .glassEffect(in: RoundedRectangle(cornerRadius: 16))
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(theme.cardBackground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .strokeBorder(theme.separator.opacity(0.5), lineWidth: 0.5)
+                )
+                .shadow(color: theme.text.opacity(0.05), radius: 8, x: 0, y: 2)
+        )
     }
 
     private var randomCard: some View {
@@ -200,7 +228,15 @@ struct HomeView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .glassEffect(in: RoundedRectangle(cornerRadius: 16))
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(theme.cardBackground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .strokeBorder(theme.separator.opacity(0.5), lineWidth: 0.5)
+                )
+                .shadow(color: theme.text.opacity(0.05), radius: 8, x: 0, y: 2)
+        )
     }
 
     // MARK: - Navigation

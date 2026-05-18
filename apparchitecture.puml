@@ -1,0 +1,110 @@
+@startuml BibliaReal
+
+skinparam componentStyle rectangle
+skinparam defaultFontName Helvetica
+skinparam backgroundColor #FFFFFF
+skinparam ArrowColor #555555
+
+skinparam component {
+    BackgroundColor #EEF4FF
+    BorderColor #4A7FCC
+    FontColor #222222
+}
+skinparam package {
+    BackgroundColor #F9F9F9
+    BorderColor #AAAAAA
+    FontColor #333333
+}
+skinparam database {
+    BackgroundColor #FFF8E1
+    BorderColor #F9A825
+}
+skinparam note {
+    BackgroundColor #FFFDE7
+    BorderColor #F9A825
+}
+
+title BibliaReal — App Architecture
+
+'─── Entry ───────────────────────────────────────────────
+package "Entry" {
+    [Biblia_RealApp]
+}
+
+'─── Navigation ──────────────────────────────────────────
+package "Navigation" {
+    [HomeView] <<NavigationStack>>
+    [ContentView] <<reading container>>
+}
+
+'─── Reading ─────────────────────────────────────────────
+package "Reading" {
+    [ReadingView]
+    [PencilCanvasView] <<UIViewRepresentable\nPKCanvasView>>
+    note right of [PencilCanvasView] : landscape only\ndraw + swipe
+}
+
+'─── Sheets & Popovers ───────────────────────────────────
+package "Sheets & Popovers" {
+    [SearchView]
+    [BookmarksView]
+    [PlanView]
+    [SettingsView]
+}
+
+'─── Data Layer ──────────────────────────────────────────
+package "Data Layer" {
+    database "bible.db\n(SQLite)" as db
+    [BibleDatabase] <<singleton>>
+    [AnnotationStore] <<singleton\n.pkd files>>
+    [BookmarkStore] <<ObservableObject\nUserDefaults>>
+    [HighlightStore] <<ObservableObject\nUserDefaults>>
+}
+
+'─── Models & Config ─────────────────────────────────────
+package "Models & Config" {
+    [BibleModels] <<Translation, Book\nChapter, Verse>>
+    [BiblePlan] <<260-day plan\nstatic data>>
+    [AppStrings] <<Translation extension\nES / RO strings>>
+    [ReadingSettings] <<ReadingTheme\nReadingFont>>
+}
+
+'─── Navigation flow ─────────────────────────────────────
+[Biblia_RealApp]  -->  [HomeView]
+
+[HomeView]        -->  [ContentView]   : NavigationStack push
+[HomeView]        ..>  [PlanView]      : sheet
+
+[ContentView]     -->  [ReadingView]
+[ContentView]     ..>  [SearchView]    : sheet
+[ContentView]     ..>  [BookmarksView] : sheet
+[ContentView]     ..>  [SettingsView]  : popover
+
+[ReadingView]     -->  [PencilCanvasView]
+
+'─── Callbacks ───────────────────────────────────────────
+[SearchView]      ..>  [ContentView]   : onSelect(bookId, chapter, verse)
+[BookmarksView]   ..>  [ContentView]   : onSelect(Bookmark)
+[PlanView]        ..>  [HomeView]      : onNavigate(bookId, chapter)
+
+'─── Data access ─────────────────────────────────────────
+[BibleDatabase]   -->  db
+
+[HomeView]        -->  [BibleDatabase] : books(), verseOfDay()
+[ContentView]     -->  [BibleDatabase] : books(), chapter()
+[SearchView]      -->  [BibleDatabase] : search()
+
+[ReadingView]     -->  [AnnotationStore]
+[ReadingView]     -->  [HighlightStore]
+[ContentView]     -->  [BookmarkStore]
+[PlanView]        -->  [BiblePlan]
+
+'─── AppStorage (shared state) ───────────────────────────
+note bottom of [ContentView]
+  @AppStorage:
+  translation, bookIdx,
+  chapterIdx, theme,
+  fontSize, lineSpacing
+end note
+
+@enduml

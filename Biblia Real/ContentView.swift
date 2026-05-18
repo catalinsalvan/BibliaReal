@@ -30,6 +30,9 @@ struct ContentView: View {
     @State private var pendingNavigation: (bookId: Int, chapter: Int)? = nil
     @State private var navDirection = 0
     @State private var highlightedVerse: Int? = nil
+    @State private var dragOffset: CGFloat = 0
+    @State private var hapticTrigger = false
+    @State private var swipeThresholdReached = false
     @ObservedObject private var bookmarkStore = BookmarkStore.shared
     @Environment(\.dismiss) private var dismiss
 
@@ -63,23 +66,58 @@ struct ContentView: View {
         VStack(spacing: 0) {
             topBar
 
-            ZStack {
-                if let book = currentBook, let chapter = currentChapter {
-                    ReadingView(
-                        book: book,
-                        chapter: chapter,
-                        selectedTranslation: selectedTranslation,
-                        onSwipeLeft: { goNext() },
-                        onSwipeRight: { goPrev() },
-                        highlightVerse: highlightedVerse
-                    )
-                    .id("\(book.id)_\(chapter.number)_\(selectedTranslation.rawValue)_\(Int(fontSize))_\(Int(lineSpacing))")
-                    .transition(chapterTransition)
-                } else {
-                    ContentUnavailableView(selectedTranslation.noContentLabel, systemImage: "book.closed")
+            GeometryReader { geo in
+                let isPortrait = geo.size.height > geo.size.width
+                ZStack {
+                    if let book = currentBook, let chapter = currentChapter {
+                        ReadingView(
+                            book: book,
+                            chapter: chapter,
+                            selectedTranslation: selectedTranslation,
+                            onSwipeLeft: { goNext() },
+                            onSwipeRight: { goPrev() },
+                            highlightVerse: highlightedVerse
+                        )
+                        .id("\(book.id)_\(chapter.number)_\(selectedTranslation.rawValue)_\(Int(fontSize))_\(Int(lineSpacing))")
+                        .transition(chapterTransition)
+                        .offset(x: dragOffset)
+                    } else {
+                        ContentUnavailableView(selectedTranslation.noContentLabel, systemImage: "book.closed")
+                    }
                 }
+                .clipped()
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 20)
+                        .onChanged { value in
+                            guard isPortrait else { return }
+                            let h = value.translation.width
+                            let v = value.translation.height
+                            guard abs(h) > abs(v) * 0.8 else { return }
+                            if !swipeThresholdReached && abs(h) > 60 {
+                                swipeThresholdReached = true
+                                hapticTrigger.toggle()
+                            }
+                            let canLeft  = h < 0 && hasNext
+                            let canRight = h > 0 && (bookIdx > 0 || chapterIdx > 0)
+                            guard canLeft || canRight else { return }
+                            dragOffset = h * 0.28
+                        }
+                        .onEnded { value in
+                            guard isPortrait else { return }
+                            swipeThresholdReached = false
+                            let h = value.translation.width
+                            let v = value.translation.height
+                            if abs(h) > abs(v) * 2 && abs(h) > 60 {
+                                if h < 0 { goNext() } else { goPrev() }
+                            } else {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                                    dragOffset = 0
+                                }
+                            }
+                        }
+                )
+                .sensoryFeedback(.impact(weight: .light, intensity: 0.6), trigger: hapticTrigger)
             }
-            .clipped()
         }
         .ignoresSafeArea(edges: [.horizontal, .bottom])
         .background(theme.background, ignoresSafeAreaEdges: .top)
@@ -148,6 +186,28 @@ struct ContentView: View {
                 .popover(isPresented: $showChapterPicker, arrowEdge: .top) {
                     chapterGrid
                 }
+
+                // ── Chapter arrows ────────────────────────────────
+                HStack(spacing: 0) {
+                    Button { goPrev() } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(bookIdx == 0 && chapterIdx == 0 ? Color.secondary.opacity(0.35) : .secondary)
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
+                    }
+                    .disabled(bookIdx == 0 && chapterIdx == 0)
+
+                    Button { goNext() } label: {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(hasNext ? .secondary : Color.secondary.opacity(0.35))
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
+                    }
+                    .disabled(!hasNext)
+                }
+                .glassEffect(in: Capsule())
             }
 
             Spacer()
@@ -353,6 +413,7 @@ struct ContentView: View {
         navDirection = direction
         highlightedVerse = nil
         withAnimation(.spring(response: 0.44, dampingFraction: 0.60)) {
+            dragOffset = 0
             bookIdx = newBookIdx
             chapterIdx = newChapterIdx
             currentChapter = newChapter
