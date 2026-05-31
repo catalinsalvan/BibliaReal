@@ -8,6 +8,40 @@ private struct ContentHeightKey: PreferenceKey {
     }
 }
 
+// Walks the superview chain to find the UIScrollView that backs a SwiftUI ScrollView.
+// Used to programmatically scroll the text column when the margin canvas is scrolled.
+private struct ScrollViewAnchor: UIViewRepresentable {
+    var onFound: (UIScrollView) -> Void
+
+    func makeUIView(context: Context) -> UIView {
+        let v = UIView()
+        v.backgroundColor = .clear
+        v.isHidden = true
+        return v
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {
+        // Walk up once the view is in the hierarchy.
+        DispatchQueue.main.async {
+            var current: UIView? = uiView.superview
+            while let c = current {
+                if let sv = c as? UIScrollView {
+                    onFound(sv)
+                    return
+                }
+                current = c.superview
+            }
+        }
+    }
+}
+
+private struct VersePosKey: PreferenceKey {
+    static var defaultValue: [Int: CGRect] = [:]
+    static func reduce(value: inout [Int: CGRect], nextValue: () -> [Int: CGRect]) {
+        value.merge(nextValue(), uniquingKeysWith: { $1 })
+    }
+}
+
 struct ReadingView: View {
     let book: Book
     let chapter: Chapter
@@ -20,10 +54,17 @@ struct ReadingView: View {
     @AppStorage("lineSpacing") private var lineSpacing: Double = 12
     @AppStorage("theme")       private var theme: ReadingTheme = .white
     @AppStorage("readingFont") private var readingFont: ReadingFont = .inter
+    @AppStorage("pencilHighlightColor") private var pencilHighlightColorRaw: String = HighlightColor.yellow.rawValue
     @State private var toolPicker = PKToolPicker()
-    @State private var overlayDrawing = PKDrawing()
     @State private var marginDrawing = PKDrawing()
+
+    private var pencilHighlightColor: HighlightColor {
+        HighlightColor(rawValue: pencilHighlightColorRaw) ?? .yellow
+    }
     @State private var contentHeight: CGFloat = 0
+    @State private var verseFrames: [Int: CGRect] = [:]
+    @State private var textScrollOffset: CGFloat = 0
+    @State private var textScrollView: UIScrollView? = nil
     @State private var highlightOpacity: Double = 0
     @ObservedObject private var highlightStore = HighlightStore.shared
 
@@ -47,18 +88,19 @@ struct ReadingView: View {
 
     var body: some View {
         GeometryReader { geo in
-            let isPortrait = geo.size.height > geo.size.width
+            let isPortrait  = geo.size.height > geo.size.width
             let marginWidth = isPortrait ? 0 : geo.size.width * marginRatio - 1
             let textWidth   = isPortrait ? geo.size.width : geo.size.width * (1 - marginRatio)
+            let canvasHeight = max(contentHeight, geo.size.height)
 
             HStack(spacing: 0) {
 
-                // ── Text column ─────────────────────────────────────
+                // ── Text column — unchanged ──────────────────────────
                 ScrollViewReader { proxy in
                     ScrollView(.vertical) {
                         VStack(spacing: 0) {
-
-                            // Text + pencil canvas
+                            ScrollViewAnchor { sv in textScrollView = sv }
+                                .frame(height: 0)
                             ZStack(alignment: .topLeading) {
                                 VStack(
                                     alignment: isPoetryBook ? .center : .leading,
@@ -74,30 +116,30 @@ struct ReadingView: View {
                                 .padding(.horizontal, 24)
                                 .padding(.vertical, 28)
                                 .background(
-                                    GeometryReader { proxy in
+                                    GeometryReader { gp in
                                         Color.clear.preference(
                                             key: ContentHeightKey.self,
-                                            value: proxy.size.height
+                                            value: gp.size.height
                                         )
                                     }
                                 )
 
-                                if !isPortrait {
-                                    PencilCanvasView(
-                                        drawing: $overlayDrawing,
-                                        toolPicker: toolPicker,
-                                        onSwipeLeft: onSwipeLeft,
-                                        onSwipeRight: onSwipeRight
-                                    )
-                                    .frame(height: max(contentHeight, geo.size.height))
+                                PencilHighlightDetector(verseFrames: verseFrames) { num in
+                                    if let v = chapter.verses.first(where: { $0.number == num }) {
+                                        applyPencilHighlight(to: v)
+                                    }
                                 }
+                                .frame(height: canvasHeight)
                             }
-                            .frame(minHeight: max(contentHeight, geo.size.height))
-
+                            .coordinateSpace(name: "textColumn")
+                            .frame(minHeight: canvasHeight)
                         }
                     }
                     .background(theme.background)
                     .frame(width: textWidth)
+                    .onScrollGeometryChange(for: CGFloat.self, of: { $0.contentOffset.y }) { _, y in
+                        textScrollOffset = max(0, y)
+                    }
                     .onAppear {
                         loadAnnotations()
                         if let verse = highlightVerse {
@@ -110,7 +152,9 @@ struct ReadingView: View {
                     }
                 }
 
-                // ── Margin (landscape only) ───────────────────────────
+                // ── Margin (landscape only) ──────────────────────────
+                // Canvas viewport is driven by textScrollOffset — no SwiftUI
+                // ScrollView wrapper needed (that caused pencil-hover glitches).
                 if !isPortrait {
                     Rectangle()
                         .fill(theme.separator)
@@ -120,6 +164,13 @@ struct ReadingView: View {
                         drawing: $marginDrawing,
                         backgroundColor: UIColor(theme.background),
                         toolPicker: toolPicker,
+                        scrollContentHeight: canvasHeight,
+                        syncedScrollOffset: textScrollOffset,
+                        onMarginScrolled: { y in
+                            textScrollView?.setContentOffset(
+                                CGPoint(x: 0, y: max(0, y)), animated: false
+                            )
+                        },
                         onSwipeLeft: onSwipeLeft,
                         onSwipeRight: onSwipeRight
                     )
@@ -129,11 +180,9 @@ struct ReadingView: View {
             .background(theme.background)
         }
         .ignoresSafeArea(edges: .bottom)
-        .onPreferenceChange(ContentHeightKey.self) { h in
-            contentHeight = h
-        }
-        .onChange(of: overlayDrawing) { _, _ in saveAnnotations() }
-        .onChange(of: marginDrawing)  { _, _ in saveAnnotations() }
+        .onPreferenceChange(ContentHeightKey.self) { h in contentHeight = h }
+        .onPreferenceChange(VersePosKey.self)      { f in verseFrames  = f }
+        .onChange(of: marginDrawing) { _, _ in saveAnnotations() }
     }
 
     // MARK: - Subviews
@@ -171,6 +220,7 @@ struct ReadingView: View {
                 .lineSpacing(lineSpacing)
                 .multilineTextAlignment(.center)
                 .background(verseHighlightBG(isHL: isHL, storedColor: storedColor))
+                .background(versePosBackground(verse))
                 .id("verse_\(verse.number)")
                 .contextMenu { verseMenuItems(verse: verse, storedColor: storedColor) }
         } else {
@@ -186,6 +236,7 @@ struct ReadingView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(verseHighlightBG(isHL: isHL, storedColor: storedColor))
             }
+            .background(versePosBackground(verse))
             .id("verse_\(verse.number)")
             .contextMenu { verseMenuItems(verse: verse, storedColor: storedColor) }
         }
@@ -213,6 +264,27 @@ struct ReadingView: View {
         }
     }
 
+    // Reports this verse's frame into the "textColumn" coordinate space so the
+    // single PencilHighlightDetector overlay can map touch positions to verses.
+    private func versePosBackground(_ verse: Verse) -> some View {
+        GeometryReader { proxy in
+            Color.clear.preference(
+                key: VersePosKey.self,
+                value: [verse.number: proxy.frame(in: .named("textColumn"))]
+            )
+        }
+    }
+
+    private func applyPencilHighlight(to verse: Verse) {
+        highlightStore.set(
+            pencilHighlightColor,
+            translation: selectedTranslation,
+            bookId: book.id,
+            chapter: chapter.number,
+            verse: verse.number
+        )
+    }
+
     @ViewBuilder
     private func verseMenuItems(verse: Verse, storedColor: HighlightColor?) -> some View {
         ForEach(HighlightColor.allCases, id: \.self) { hc in
@@ -224,6 +296,7 @@ struct ReadingView: View {
                     chapter: chapter.number,
                     verse: verse.number
                 )
+                pencilHighlightColorRaw = hc.rawValue   // pencil adopts this colour
             } label: {
                 Label(hc.label(for: selectedTranslation), systemImage: "circle.fill")
             }
@@ -263,16 +336,10 @@ struct ReadingView: View {
     // MARK: - Annotations
 
     private func loadAnnotations() {
-        let saved = AnnotationStore.shared.load(key: annotationKey)
-        overlayDrawing = saved.overlay
-        marginDrawing  = saved.margin
+        marginDrawing = AnnotationStore.shared.loadMargin(key: annotationKey)
     }
 
     private func saveAnnotations() {
-        AnnotationStore.shared.save(
-            key: annotationKey,
-            overlay: overlayDrawing,
-            margin: marginDrawing
-        )
+        AnnotationStore.shared.save(key: annotationKey, margin: marginDrawing)
     }
 }

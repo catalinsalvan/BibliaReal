@@ -13,13 +13,12 @@ class AnnotationStore {
         try? FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true)
     }
 
-    func save(key: String, overlay: PKDrawing, margin: PKDrawing) {
-        try? overlay.dataRepresentation().write(to: fileURL(key, "overlay"))
+    func save(key: String, margin: PKDrawing) {
         try? margin.dataRepresentation().write(to: fileURL(key, "margin"))
     }
 
-    func load(key: String) -> (overlay: PKDrawing, margin: PKDrawing) {
-        (loadDrawing(fileURL(key, "overlay")), loadDrawing(fileURL(key, "margin")))
+    func loadMargin(key: String) -> PKDrawing {
+        loadDrawing(fileURL(key, "margin"))
     }
 
     private func fileURL(_ key: String, _ suffix: String) -> URL {

@@ -57,6 +57,13 @@ enum ReadingTheme: String, CaseIterable, Identifiable {
         }
     }
 
+    var isDark: Bool {
+        switch self {
+        case .dark, .black, .claudeCode: return true
+        default: return false
+        }
+    }
+
     func displayName(for translation: Translation) -> String {
         let ro = translation == .cornilescu
         switch self {

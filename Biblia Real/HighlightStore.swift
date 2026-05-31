@@ -2,24 +2,26 @@ import SwiftUI
 import Combine
 
 enum HighlightColor: String, CaseIterable, Codable {
-    case yellow, green, pink, blue
+    case yellow, green, pink, blue, purple
 
     var color: Color {
         switch self {
-        case .yellow: return .yellow
-        case .green:  return .green
-        case .pink:   return .pink
-        case .blue:   return .blue
+        case .yellow: return Color(red: 1.00, green: 0.80, blue: 0.20) // amber / honey
+        case .green:  return Color(red: 0.35, green: 0.80, blue: 0.60) // mint / sage
+        case .pink:   return Color(red: 1.00, green: 0.42, blue: 0.56) // rose / coral
+        case .blue:   return Color(red: 0.38, green: 0.60, blue: 0.98) // periwinkle sky
+        case .purple: return Color(red: 0.72, green: 0.52, blue: 0.98) // soft lavender
         }
     }
 
     func label(for translation: Translation) -> String {
         let ro = translation == .cornilescu
         switch self {
-        case .yellow: return ro ? "Galben"   : "Amarillo"
-        case .green:  return ro ? "Verde"    : "Verde"
-        case .pink:   return ro ? "Roz"      : "Roz"
-        case .blue:   return ro ? "Albastru" : "Azul"
+        case .yellow: return ro ? "Chihlimbar" : "Ámbar"
+        case .green:  return ro ? "Mentă"      : "Menta"
+        case .pink:   return ro ? "Trandafiriu" : "Rosa"
+        case .blue:   return ro ? "Azuriu"     : "Celeste"
+        case .purple: return ro ? "Lavandă"    : "Lavanda"
         }
     }
 }

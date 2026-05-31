@@ -33,9 +33,7 @@ struct ContentView: View {
     @State private var dragOffset: CGFloat = 0
     @State private var hapticTrigger = false
     @State private var swipeThresholdReached = false
-    @State private var topBarVisible = true
     @ObservedObject private var bookmarkStore = BookmarkStore.shared
-    @Environment(\.dismiss) private var dismiss
     @Environment(\.horizontalSizeClass) private var hSizeClass
 
     private var chapterTransition: AnyTransition {
@@ -85,11 +83,6 @@ struct ContentView: View {
                 }
             }
             .clipped()
-            .simultaneousGesture(TapGesture().onEnded {
-                withAnimation(.easeInOut(duration: 0.22)) {
-                    topBarVisible.toggle()
-                }
-            })
             .simultaneousGesture(
                 DragGesture(minimumDistance: 20)
                     .onChanged { value in
@@ -122,15 +115,106 @@ struct ContentView: View {
             )
             .sensoryFeedback(.impact(weight: .light, intensity: 0.6), trigger: hapticTrigger)
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            if topBarVisible {
-                topBar
-                    .background(theme.background)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-            }
-        }
         .ignoresSafeArea(edges: [.horizontal, .bottom])
         .background(theme.background, ignoresSafeAreaEdges: .top)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(theme.background, for: .navigationBar)
+        .toolbarColorScheme(theme.isDark ? .dark : .light, for: .navigationBar)
+        .toolbar {
+            // ── Leading: prev / next chapter (iPad only — iPhone uses swipe) ──
+            if hSizeClass != .compact {
+                ToolbarItemGroup(placement: .navigationBarLeading) {
+                    Button { goPrev() } label: {
+                        Image(systemName: "chevron.backward")
+                    }
+                    .disabled(bookIdx == 0 && chapterIdx == 0)
+
+                    Button { goNext() } label: {
+                        Image(systemName: "chevron.forward")
+                    }
+                    .disabled(!hasNext)
+                }
+            }
+
+            // ── Center: tappable book · chapter ──────────────────
+            ToolbarItem(placement: .principal) {
+                    HStack(spacing: 6) {
+                        Button { showBookPicker = true } label: {
+                            HStack(spacing: 3) {
+                                Text(currentBook?.name ?? "—")
+                                    .fontWeight(.semibold)
+                                    .lineLimit(1)
+                                Image(systemName: "chevron.down")
+                                    .font(.caption2)
+                            }
+                        }
+                        .popover(isPresented: $showBookPicker, arrowEdge: .top) { bookPicker }
+
+                        Text("·").foregroundStyle(.tertiary)
+
+                        Button { showChapterPicker = true } label: {
+                            HStack(spacing: 3) {
+                                Text(currentChapter.map { "\($0.number)" } ?? "—")
+                                    .fontWeight(.semibold)
+                                Image(systemName: "chevron.down")
+                                    .font(.caption2)
+                            }
+                        }
+                        .popover(isPresented: $showChapterPicker, arrowEdge: .top) { chapterGrid }
+                    }
+                    .foregroundStyle(.primary)
+                    .font(.system(size: 15))
+                }
+
+                // ── Trailing: bookmark ────────────────────────────────
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button { showBookmarks = true } label: {
+                        Image(systemName: currentBookIsBookmarked ? "bookmark.fill" : "bookmark")
+                            .foregroundStyle(currentBookIsBookmarked ? Color.accentColor : .secondary)
+                    }
+                    .sheet(isPresented: $showBookmarks) {
+                        if let book = currentBook, let chapter = currentChapter {
+                            BookmarksView(
+                                currentTranslation: selectedTranslation,
+                                currentBookId: book.id,
+                                currentBookName: book.name,
+                                currentChapter: chapter.number
+                            ) { bookmark in navigateTo(bookmark) }
+                            .presentationDetents([.medium, .large])
+                        }
+                    }
+                }
+
+                // ── Trailing: search ──────────────────────────────────
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button { showSearch = true } label: {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundStyle(.secondary)
+                    }
+                    .sheet(isPresented: $showSearch) {
+                        SearchView(translation: selectedTranslation, books: books) { result in
+                            if let idx = books.firstIndex(where: { $0.id == result.bookId }) {
+                                bookIdx = idx
+                                chapterIdx = result.chapter - 1
+                                highlightedVerse = result.verse
+                            }
+                        }
+                        .presentationDetents([.medium, .large])
+                    }
+                }
+
+                // ── Trailing: settings ────────────────────────────────
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button { showSettings = true } label: {
+                        Image(systemName: "gearshape")
+                            .foregroundStyle(.secondary)
+                    }
+                    .popover(isPresented: $showSettings, arrowEdge: .top) {
+                        SettingsView(selectedTranslation: $selectedTranslation,
+                                     isPresented: $showSettings)
+                    }
+                }
+        }
         .onAppear {
             loadBooks()
             if let v = initialVerse { highlightedVerse = v }
@@ -144,180 +228,6 @@ struct ContentView: View {
         }
         .onChange(of: bookIdx) { _, _ in loadChapter() }
         .onChange(of: chapterIdx) { _, _ in loadChapter() }
-    }
-
-    // MARK: - Top bar
-
-    private var topBar: some View {
-        HStack {
-            // ── Navigation pills ──────────────────────────────────
-            HStack(spacing: 10) {
-                Button { dismiss() } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 12)
-                }
-                .glassEffect(in: Capsule())
-
-                if hSizeClass == .compact {
-                    // ── Merged book + chapter pill (iPhone) ───────────
-                    HStack(spacing: 0) {
-                        Button { showBookPicker = true } label: {
-                            HStack(spacing: 4) {
-                                Text(currentBook?.name ?? "—")
-                                    .fontWeight(.semibold)
-                                    .lineLimit(1)
-                                    .frame(maxWidth: 100)
-                                Image(systemName: "chevron.down")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .padding(.vertical, 8)
-                            .padding(.leading, 14)
-                            .padding(.trailing, 8)
-                        }
-                        .popover(isPresented: $showBookPicker, arrowEdge: .top) { bookPicker }
-
-                        Text("·")
-                            .foregroundStyle(.tertiary)
-                            .padding(.horizontal, 2)
-
-                        Button { showChapterPicker = true } label: {
-                            HStack(spacing: 4) {
-                                Text(currentChapter.map { "Cap. \($0.number)" } ?? "—")
-                                    .fontWeight(.semibold)
-                                    .lineLimit(1)
-                                Image(systemName: "chevron.down")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .padding(.vertical, 8)
-                            .padding(.leading, 8)
-                            .padding(.trailing, 14)
-                        }
-                        .popover(isPresented: $showChapterPicker, arrowEdge: .top) { chapterGrid }
-                    }
-                    .glassEffect(in: Capsule())
-                } else {
-                    // ── Separate pills (iPad) ─────────────────────────
-                    Button { showBookPicker = true } label: {
-                        HStack(spacing: 4) {
-                            Text(currentBook?.name ?? "—")
-                                .fontWeight(.semibold)
-                                .lineLimit(1)
-                                .frame(maxWidth: 110)
-                            Image(systemName: "chevron.down")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 14)
-                    }
-                    .glassEffect(in: Capsule())
-                    .popover(isPresented: $showBookPicker, arrowEdge: .top) { bookPicker }
-
-                    Button { showChapterPicker = true } label: {
-                        HStack(spacing: 4) {
-                            Text(currentChapter.map { "Cap. \($0.number)" } ?? "—")
-                                .fontWeight(.semibold)
-                                .lineLimit(1)
-                            Image(systemName: "chevron.down")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 14)
-                    }
-                    .glassEffect(in: Capsule())
-                    .popover(isPresented: $showChapterPicker, arrowEdge: .top) { chapterGrid }
-
-                    // ── Chapter arrows ────────────────────────────────
-                    HStack(spacing: 0) {
-                        Button { goPrev() } label: {
-                            Image(systemName: "chevron.left")
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundStyle(bookIdx == 0 && chapterIdx == 0 ? Color.secondary.opacity(0.35) : .secondary)
-                                .padding(.vertical, 8)
-                                .padding(.horizontal, 12)
-                        }
-                        .disabled(bookIdx == 0 && chapterIdx == 0)
-
-                        Button { goNext() } label: {
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundStyle(hasNext ? .secondary : Color.secondary.opacity(0.35))
-                                .padding(.vertical, 8)
-                                .padding(.horizontal, 12)
-                        }
-                        .disabled(!hasNext)
-                    }
-                    .glassEffect(in: Capsule())
-                }
-            }
-
-            Spacer()
-
-            // ── Actions pill ──────────────────────────────────────
-            HStack(spacing: 0) {
-                Button {
-                    showBookmarks = true
-                } label: {
-                    Image(systemName: currentBookIsBookmarked ? "bookmark.fill" : "bookmark")
-                        .font(.system(size: 16))
-                        .foregroundStyle(currentBookIsBookmarked ? Color.accentColor : .secondary)
-                        .padding(10)
-                }
-                .sheet(isPresented: $showBookmarks) {
-                    if let book = currentBook, let chapter = currentChapter {
-                        BookmarksView(
-                            currentTranslation: selectedTranslation,
-                            currentBookId: book.id,
-                            currentBookName: book.name,
-                            currentChapter: chapter.number
-                        ) { bookmark in
-                            navigateTo(bookmark)
-                        }
-                        .presentationDetents([.medium, .large])
-                    }
-                }
-
-                Button {
-                    showSearch = true
-                } label: {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 16))
-                        .foregroundStyle(.secondary)
-                        .padding(10)
-                }
-                .sheet(isPresented: $showSearch) {
-                    SearchView(translation: selectedTranslation, books: books) { result in
-                        if let idx = books.firstIndex(where: { $0.id == result.bookId }) {
-                            bookIdx = idx
-                            chapterIdx = result.chapter - 1
-                            highlightedVerse = result.verse
-                        }
-                    }
-                    .presentationDetents([.medium, .large])
-                }
-
-                Button {
-                    showSettings = true
-                } label: {
-                    Image(systemName: "gearshape")
-                        .font(.system(size: 16))
-                        .foregroundStyle(.secondary)
-                        .padding(10)
-                }
-                .popover(isPresented: $showSettings, arrowEdge: .top) {
-                    SettingsView(selectedTranslation: $selectedTranslation, isPresented: $showSettings)
-                }
-            }
-            .glassEffect(in: Capsule())
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 10)
     }
 
     // MARK: - Chapter grid

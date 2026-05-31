@@ -50,7 +50,6 @@ struct HomeView: View {
                 switch dest {
                 case .reading(let verse):
                     ContentView(initialVerse: verse)
-                        .toolbar(.hidden, for: .navigationBar)
                 }
             }
         }
